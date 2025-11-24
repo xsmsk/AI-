@@ -98,9 +98,47 @@ export const generateHairstyle = async (
 
   } catch (error: any) {
     console.error("Gemini API Error:", error);
+
+    // 1. Handle Missing Key
     if (error.message === "MISSING_API_KEY") {
         throw error;
     }
+
+    // 2. Analyze Error Message
+    // The error might be a raw JSON string or an object
+    const errorString = error.message || JSON.stringify(error);
+    
+    // Check for Rate Limit / Quota Exceeded (429)
+    if (
+        errorString.includes("429") || 
+        errorString.includes("Quota exceeded") || 
+        errorString.includes("RESOURCE_EXHAUSTED")
+    ) {
+        // Try to extract retry time if available
+        const match = errorString.match(/retry in (\d+)/);
+        const seconds = match ? match[1] : '30';
+        throw new Error(`⚠️ 免费版 API 额度已满 (Error 429)\nGoogle 限制了请求频率，请休息 ${seconds} 秒后再试。`);
+    }
+
+    // Check for Safety Blocks
+    if (
+        errorString.includes("SAFETY") || 
+        errorString.includes("BLOCKED") ||
+        errorString.includes("finishReason")
+    ) {
+        throw new Error("生成被拦截：图片或描述可能触发了安全过滤器，请调整后重试。");
+    }
+
+    // Check for Model Overloaded (503)
+    if (errorString.includes("503") || errorString.includes("Overloaded")) {
+        throw new Error("AI 服务繁忙 (503)，请稍后再试。");
+    }
+
+    // Fallback: don't show raw JSON to user
+    if (errorString.includes("{") && errorString.includes("}")) {
+        throw new Error("生成请求失败，请检查网络或稍后重试。");
+    }
+
     throw new Error(error.message || "生成失败，请检查网络或Key是否正确");
   }
 };

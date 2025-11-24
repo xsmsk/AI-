@@ -4,7 +4,7 @@ import { HAIRSTYLES, HAIR_COLORS } from './constants';
 import { generateHairstyle, fileToBase64, setRuntimeApiKey } from './services/geminiService';
 import { Spinner } from './components/Spinner';
 import { Button } from './components/Button';
-import { Camera, Upload, Sparkles, RefreshCw, Download, User, Image as ImageIcon, Palette, Type, Scissors, PlusSquare, X, Smartphone, Settings, Key } from 'lucide-react';
+import { Camera, Upload, Sparkles, RefreshCw, Download, User, Image as ImageIcon, Palette, Type, Scissors, PlusSquare, X, Smartphone, Settings, Key, AlertTriangle } from 'lucide-react';
 
 const App: React.FC = () => {
   // State
@@ -173,6 +173,8 @@ const App: React.FC = () => {
   };
 
   const filteredHairstyles = HAIRSTYLES.filter(h => h.gender === gender);
+
+  const isWarning = error?.includes('⚠️') || error?.includes('429');
 
   return (
     <div className="min-h-screen bg-gray-50 text-slate-800 pb-20">
@@ -400,9 +402,15 @@ const App: React.FC = () => {
                         </>
                     )}
                 </Button>
+                
                 {error && (
-                    <div className="mt-3 text-sm text-center bg-red-50 p-3 rounded-lg border border-red-100 animate-in fade-in">
-                        <p className="text-red-600 font-medium flex items-center justify-center gap-1">
+                    <div className={`mt-3 text-sm text-center p-3 rounded-lg border animate-in fade-in ${
+                        isWarning
+                        ? 'bg-yellow-50 border-yellow-100 text-yellow-700' 
+                        : 'bg-red-50 border-red-100 text-red-600'
+                    }`}>
+                        <p className="font-medium flex flex-col items-center justify-center gap-1 whitespace-pre-line">
+                            {isWarning && <AlertTriangle className="w-5 h-5 mb-1" />}
                             {error}
                         </p>
                         {error.includes("Key") && (
