@@ -379,16 +379,25 @@ const App: React.FC = () => {
                 </Button>
                 {error && (
                     <div className="mt-3 text-sm text-center bg-red-50 p-3 rounded-lg border border-red-100">
-                        <p className="text-red-600 mb-1">{error}</p>
-                        {error.includes("API Key") && (
-                             <a 
-                               href="https://aistudio.google.com/app/apikey" 
-                               target="_blank" 
-                               rel="noreferrer"
-                               className="text-indigo-600 underline text-xs block mt-1 hover:text-indigo-800"
-                             >
-                               点击这里免费获取 Google Gemini API Key
-                             </a>
+                        <p className="text-red-600 mb-1 font-medium">出错了: {error}</p>
+                        {(error.includes("API Key") || error.includes("Environment Variables")) && (
+                             <div className="mt-2 text-xs bg-white p-2 rounded border border-red-100">
+                                <p className="text-gray-600 mb-1">请检查 Vercel 环境变量设置:</p>
+                                <ol className="list-decimal list-inside text-left mx-auto max-w-[250px] text-gray-500 space-y-1">
+                                    <li>设置 -> Environment Variables</li>
+                                    <li>Key: <code className="bg-gray-100 px-1 rounded">API_KEY</code></li>
+                                    <li>Value: <code className="bg-gray-100 px-1 rounded">AIza...</code></li>
+                                    <li><span className="font-bold text-red-500">必须要 Redeploy (重新部署)</span></li>
+                                </ol>
+                                <a 
+                                  href="https://aistudio.google.com/app/apikey" 
+                                  target="_blank" 
+                                  rel="noreferrer"
+                                  className="text-indigo-600 underline block mt-2 hover:text-indigo-800"
+                                >
+                                  获取免费 Key
+                                </a>
+                             </div>
                         )}
                     </div>
                 )}
