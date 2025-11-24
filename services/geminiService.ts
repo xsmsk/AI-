@@ -1,18 +1,26 @@
 import { GoogleGenAI } from "@google/genai";
 
-const getClient = () => {
-  // Robustly try to get the API Key
-  // 1. Try the standard process.env injection (defined in vite.config.ts)
-  // 2. Try Vite's import.meta.env (fallback)
-  const apiKey = process.env.API_KEY || (import.meta as any).env?.VITE_API_KEY;
+// Variable to store key set at runtime (via UI)
+let runtimeApiKey: string | null = null;
 
-  if (!apiKey) {
-    console.error("CRITICAL ERROR: API Key is missing.");
-    console.log("Debug Info:");
-    console.log("- process.env.API_KEY:", process.env.API_KEY ? "Present" : "Missing");
-    console.log("- import.meta.env.VITE_API_KEY:", (import.meta as any).env?.VITE_API_KEY ? "Present" : "Missing");
-    
-    throw new Error("API Key not found. Please check Vercel Environment Variables (API_KEY or VITE_API_KEY).");
+// Allow the UI to set the key directly (e.g. from LocalStorage or User Input)
+export const setRuntimeApiKey = (key: string) => {
+  runtimeApiKey = key;
+};
+
+const getClient = () => {
+  // Priority:
+  // 1. Key explicitly set by user in UI (Runtime)
+  // 2. Vercel Environment Variable (process.env.API_KEY)
+  // 3. Vite Environment Variable (import.meta.env.VITE_API_KEY)
+  const apiKey = 
+    runtimeApiKey || 
+    process.env.API_KEY || 
+    (import.meta as any).env?.VITE_API_KEY;
+
+  if (!apiKey || apiKey.trim() === '') {
+    console.warn("API Key is missing in all sources.");
+    throw new Error("MISSING_API_KEY"); // Special error code to trigger UI modal
   }
 
   return new GoogleGenAI({ apiKey });
@@ -24,9 +32,11 @@ export const generateHairstyle = async (
   referenceImageBase64?: string
 ): Promise<string> => {
   const ai = getClient();
+  // Using the Flash Image model for generation/editing tasks
   const model = 'gemini-2.5-flash-image';
 
   // Construct the prompt
+  // We phrase this as a request to generate a new image based on the input
   const textPrompt = `
     You are a professional hair stylist and photo editor.
     Task: Change the hairstyle of the person in the source image.
@@ -41,9 +51,7 @@ export const generateHairstyle = async (
   `;
 
   const parts: any[] = [
-    {
-      text: textPrompt
-    },
+    { text: textPrompt },
     {
         inlineData: {
             data: sourceImageBase64,
@@ -53,9 +61,7 @@ export const generateHairstyle = async (
   ];
 
   if (referenceImageBase64) {
-    parts.push({
-        text: "Use the following image as a reference for the hairstyle structure and shape:"
-    });
+    parts.push({ text: "Use the following image as a strict reference for the hairstyle structure and shape:" });
     parts.push({
       inlineData: {
         data: referenceImageBase64,
@@ -81,11 +87,21 @@ export const generateHairstyle = async (
       }
     }
     
+    // If we got text but no image, it might be a refusal or text-only response
+    const textPart = response.candidates?.[0]?.content?.parts?.find(p => p.text);
+    if (textPart) {
+        console.warn("Model returned text instead of image:", textPart.text);
+        throw new Error("AI未能生成图片，可能描述涉及安全限制。请尝试换一种描述。");
+    }
+
     throw new Error("No image generated in the response.");
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini API Error:", error);
-    throw error;
+    if (error.message === "MISSING_API_KEY") {
+        throw error;
+    }
+    throw new Error(error.message || "生成失败，请检查网络或Key是否正确");
   }
 };
 

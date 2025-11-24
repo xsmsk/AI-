@@ -6,25 +6,22 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
 
   // 2. Robust Key Detection Strategy
-  // Vercel injects variables into `process.env`.
-  // Vite `loadEnv` handles .env files.
-  // We check ALL possibilities to ensure we catch the key.
+  // We check ALL possibilities.
   const apiKey = 
     process.env.API_KEY ||       // Vercel System Env
     process.env.VITE_API_KEY ||  // Vercel System Env (Vite convention)
     env.API_KEY ||               // .env file
-    env.VITE_API_KEY;            // .env file (Vite convention)
+    env.VITE_API_KEY ||          // .env file (Vite convention)
+    '';                          // Fallback to empty string to allow runtime manual entry
 
-  console.log(`[Vite Build] API Key detection: ${apiKey ? 'Success (Hidden)' : 'Failed'}`);
+  console.log(`[Vite Build] API Key detection: ${apiKey ? 'Success (Hidden)' : 'Not found (Will rely on UI input)'}`);
 
   return {
     plugins: [react()],
     define: {
       // 3. Inject the key into the client-side code
-      // We polyfill 'process.env.API_KEY' so the service code works as expected
+      // We use JSON.stringify to ensure it's a valid string in the compiled code
       'process.env.API_KEY': JSON.stringify(apiKey),
-      
-      // We also expose it via the standard Vite method just in case
       'import.meta.env.VITE_API_KEY': JSON.stringify(apiKey),
     },
   };
