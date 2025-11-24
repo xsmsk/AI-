@@ -378,8 +378,18 @@ const App: React.FC = () => {
                     )}
                 </Button>
                 {error && (
-                    <div className="mt-3 text-red-500 text-sm text-center bg-red-50 p-2 rounded-lg border border-red-100">
-                        {error}
+                    <div className="mt-3 text-sm text-center bg-red-50 p-3 rounded-lg border border-red-100">
+                        <p className="text-red-600 mb-1">{error}</p>
+                        {error.includes("API Key") && (
+                             <a 
+                               href="https://aistudio.google.com/app/apikey" 
+                               target="_blank" 
+                               rel="noreferrer"
+                               className="text-indigo-600 underline text-xs block mt-1 hover:text-indigo-800"
+                             >
+                               点击这里免费获取 Google Gemini API Key
+                             </a>
+                        )}
                     </div>
                 )}
               </div>
